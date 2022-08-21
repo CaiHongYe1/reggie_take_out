@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- mapper标签的namespace要与UserMapper接口的全类名保持一致-->
+<mapper namespace="com.chy.reggie.mapper.DishMapper">
+
+    <resultMap id="getpageresultMap" type="com.chy.reggie.dto.DishDto">
+        <id property="id" column="did"></id>
+        <result property="name" column="dname"></result>
+        <result property="categoryId" column="dcategory_id"></result>
+        <result property="price" column="dprice"></result>
+        <result property="code" column="dcode"></result>
+        <result property="image" column="dimage"></result>
+        <result property="description" column="ddescription"></result>
+        <result property="status" column="dstatus"></result>
+        <result property="sort" column="dsort"></result>
+        <result property="createTime" column="dcreate_time"></result>
+        <result property="updateTime" column="dupdate_time"></result>
+        <result property="createUser" column="dcreate_user"></result>
+        <result property="updateUser" column="dupdate_user"></result>
+        <result property="isDeleted" column="dis_deleted"></result>
+        <association property="categoryName" column="cname">
+        </association>
+    </resultMap>
+<!--    List<DishDto> getpage(Integer page,Integer pageSize,String name);-->
+    <select id="getpage" resultMap="getpageresultMap">
+        select
+            d.id did,d.name dname,d.category_id dcategory_id,d.price dprice,d.code dcode,d.image dimage,d.description ddescription,
+            d.status dstatus,d.sort dsort,d.create_time dcreate_time,d.update_time dupdate_time,d.create_user dcreate_user,d.update_user dupdate_user,d.is_deleted dis_deleted,
+            c.name cname
+        from dish d , category c where d.category_id = c.id;
+    </select>
+</mapper>
