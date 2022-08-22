@@ -18,6 +18,7 @@ import com.chy.reggie.service.SetmealService;
 import org.apache.commons.lang.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -37,8 +38,15 @@ public class SetmealServiceImpl extends ServiceImpl<SetmealMapper, Setmeal> impl
     @Autowired
     private CategoryService categoryService;
 
+    @Autowired
+    private RedisTemplate redisTemplate;
+
     @Override
     public void saveSetmeal(SetmealDto setmealDto) {
+        //新增套餐 要删除redis中该套餐对应的套餐分类缓存
+        String key = "setmeal_"+setmealDto.getCategoryId();
+        redisTemplate.delete(key);
+
 //      将套餐  写入到  setmeal表中
         this.save(setmealDto);
 //      将套餐菜品 写入到  setmeal_dish表中
@@ -123,6 +131,10 @@ public class SetmealServiceImpl extends ServiceImpl<SetmealMapper, Setmeal> impl
      */
     @Override
     public void updateSetmeal(SetmealDto setmealDto) {
+        //更新套餐 要删除redis中该套餐对应的套餐分类缓存
+        String key = "setmeal_"+setmealDto.getCategoryId();
+        redisTemplate.delete(key);
+
         this.updateById(setmealDto);
 
 //        删除套餐菜品表内 属于该套餐的菜品信息
@@ -144,6 +156,13 @@ public class SetmealServiceImpl extends ServiceImpl<SetmealMapper, Setmeal> impl
      */
     @Override
     public void deleteWithDish(Long[] ids) {
+        //删除套餐 要删除redis中该套餐对应的套餐分类缓存
+        for (Long id : ids) {
+            Setmeal thissetmeal = this.getById(id);
+            String key = "setmeal_"+thissetmeal.getCategoryId();
+            redisTemplate.delete(key);
+        }
+
 //        查询套餐状态，确定是否可以删除
         QueryWrapper<Setmeal> setmealQueryWrapper = new QueryWrapper<>();
         setmealQueryWrapper.in("id",Arrays.asList(ids))
@@ -159,6 +178,8 @@ public class SetmealServiceImpl extends ServiceImpl<SetmealMapper, Setmeal> impl
         UpdateWrapper<SetmealDish> setmealDishUpdateWrapper = new UpdateWrapper<>();
         setmealDishUpdateWrapper.in("setmeal_id",Arrays.asList(ids));
         setmealDishService.remove(setmealDishUpdateWrapper);
+
+
     }
     /**
      * 改变在售状态
@@ -167,6 +188,12 @@ public class SetmealServiceImpl extends ServiceImpl<SetmealMapper, Setmeal> impl
      */
     @Override
     public void changeStatus(Integer status, Long[] ids) {
+        //修改套餐状态 要删除redis中该套餐对应的套餐分类缓存
+        for (Long id : ids) {
+            Setmeal thissetmeal = this.getById(id);
+            String key = "setmeal_"+thissetmeal.getCategoryId();
+            redisTemplate.delete(key);
+        }
 //        构造更新条件
         UpdateWrapper<Setmeal> setmealUpdateWrapper = new UpdateWrapper<>();
         setmealUpdateWrapper.set("status",status)

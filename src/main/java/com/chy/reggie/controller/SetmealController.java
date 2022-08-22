@@ -9,10 +9,12 @@ import com.chy.reggie.service.SetmealDishService;
 import com.chy.reggie.service.SetmealService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @RestController
@@ -24,6 +26,9 @@ public class SetmealController {
 
     @Autowired
     private SetmealDishService setmealDishService;
+
+    @Autowired
+    private RedisTemplate redisTemplate;
 
     /**
      * 新增套餐
@@ -105,11 +110,24 @@ public class SetmealController {
      */
     @GetMapping("/list")
     public R<List<Setmeal>> getSetmealByCategoryId(Setmeal setmeal){
+        //查询redis缓存中是否已经有这个分类的套餐数据
+        String key = "setmeal_"+setmeal.getCategoryId();
+        List<Setmeal> list = (List<Setmeal>)redisTemplate.opsForValue().get(key);
+
+        //如果有就直接返回
+        if(list != null){
+            return R.success(list);
+        }
+
+        //如果没有就查询数据库，如何再将结果加到redis中缓存
+
         QueryWrapper<Setmeal> setmealQueryWrapper = new QueryWrapper<>();
         setmealQueryWrapper.eq("category_id",setmeal.getCategoryId());
         setmealQueryWrapper.eq(setmeal.getStatus() != null,"status",setmeal.getStatus());
         setmealQueryWrapper.orderByDesc("update_time");
-        List<Setmeal> list = setmealService.list(setmealQueryWrapper);
+        list = setmealService.list(setmealQueryWrapper);
+        //将查询结果加入到redis缓存中
+        redisTemplate.opsForValue().set(key,list,5, TimeUnit.MINUTES);
         return R.success(list);
     }
 
